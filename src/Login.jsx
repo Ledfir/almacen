@@ -1,14 +1,41 @@
 import { useState } from 'react';
+import { useAuth } from './contexts/AuthContext';
 
 function Login() {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  const { signInWithEmployeeId } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Aquí puedes agregar la lógica de autenticación
-    console.log('Login attempt:', { employeeId, password, rememberMe });
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const { data, error } = await signInWithEmployeeId(employeeId, password);
+      
+      if (error) {
+        setError(error.message || 'Error al iniciar sesión');
+        setLoading(false);
+        return;
+      }
+
+      if (data?.user) {
+        setSuccess('¡Acceso autorizado!');
+        // El AuthContext actualizará el estado y App.jsx mostrará el Dashboard automáticamente
+      }
+    } catch (err) {
+      setError('Error de conexión. Verifica tu configuración.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,6 +94,30 @@ function Login() {
                   Ingrese sus credenciales de operador para continuar.
                 </p>
               </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-4 bg-error-container border border-error rounded flex items-start gap-3">
+                  <span className="material-symbols-outlined text-error text-xl flex-shrink-0">
+                    error
+                  </span>
+                  <p className="font-body-md text-body-md text-on-error-container">
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {success && (
+                <div className="mb-6 p-4 bg-primary-container border border-primary rounded flex items-start gap-3">
+                  <span className="material-symbols-outlined text-primary text-xl flex-shrink-0">
+                    check_circle
+                  </span>
+                  <p className="font-body-md text-body-md text-on-primary-container">
+                    {success}
+                  </p>
+                </div>
+              )}
 
               <form className="space-y-6" onSubmit={handleSubmit}>
                 {/* Employee ID Field */}
@@ -134,13 +185,25 @@ function Login() {
 
                 {/* Submit Button */}
                 <button
-                  className="w-full py-4 bg-secondary-container text-on-secondary-container font-headline-sm text-headline-sm rounded flex items-center justify-center gap-3 hover:opacity-90 active:scale-[0.98] transition-all group"
+                  className="w-full py-4 bg-secondary-container text-on-secondary-container font-headline-sm text-headline-sm rounded flex items-center justify-center gap-3 hover:opacity-90 active:scale-[0.98] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   type="submit"
+                  disabled={loading}
                 >
-                  <span className="font-bold tracking-tight">INGRESAR AL SISTEMA</span>
-                  <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-                    arrow_forward
-                  </span>
+                  {loading ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin">
+                        progress_activity
+                      </span>
+                      <span className="font-bold tracking-tight">VERIFICANDO...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold tracking-tight">INGRESAR AL SISTEMA</span>
+                      <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
+                        arrow_forward
+                      </span>
+                    </>
+                  )}
                 </button>
               </form>
 
